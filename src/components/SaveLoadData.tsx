@@ -1,6 +1,14 @@
 import React, { useRef } from "react"
 import { useCalendar } from "../contexts/CalendarContext"
 import { UI_COLORS } from "../utils/colors"
+import {
+  buildImportedStoredData,
+  isCalendarView,
+  isColorTextureCode,
+  mergeDateCells,
+  STORAGE_KEY,
+  toStoredData,
+} from "../utils/persistence"
 
 const SaveLoadData: React.FC = () => {
   const {
@@ -18,10 +26,7 @@ const SaveLoadData: React.FC = () => {
 
   const handleSaveData = () => {
     const dataToSave = {
-      selectedYear,
-      dateCells: Object.fromEntries(dateCells),
-      selectedColorTexture,
-      selectedView,
+      ...toStoredData(selectedYear, dateCells, selectedColorTexture, selectedView),
       exportDate: new Date().toISOString(),
       version: "2.0",
     }
@@ -59,50 +64,30 @@ const SaveLoadData: React.FC = () => {
           return
         }
 
-        if (loadedData.dateCells && typeof loadedData.dateCells === "object") {
-          const newDateCells = new Map(dateCells)
+        const loadedRecord = loadedData as Record<string, unknown>
 
-          Object.entries(loadedData.dateCells).forEach(([dateKey, cellData]) => {
-            const existing = newDateCells.get(dateKey) || {}
-            newDateCells.set(dateKey, {
-              ...existing,
-              ...(cellData as any),
-            })
-          })
+        if (loadedRecord.dateCells && typeof loadedRecord.dateCells === "object") {
+          const newDateCells = mergeDateCells(dateCells, loadedRecord.dateCells)
           setDateCells(newDateCells)
         }
 
-        if (loadedData.selectedYear && typeof loadedData.selectedYear === "number") {
-          setSelectedYear(loadedData.selectedYear)
+        if (typeof loadedRecord.selectedYear === "number") {
+          setSelectedYear(loadedRecord.selectedYear)
         }
-        if (loadedData.selectedColorTexture && typeof loadedData.selectedColorTexture === "string") {
-          setSelectedColorTexture(loadedData.selectedColorTexture)
+        if (isColorTextureCode(loadedRecord.selectedColorTexture)) {
+          setSelectedColorTexture(loadedRecord.selectedColorTexture)
         }
-        if (loadedData.selectedView && ["Linear", "Classic", "Column"].includes(loadedData.selectedView)) {
-          setSelectedView(loadedData.selectedView)
+        if (isCalendarView(loadedRecord.selectedView)) {
+          setSelectedView(loadedRecord.selectedView)
         }
 
-        const mergedDateCells = loadedData.dateCells
-          ? (() => {
-              const newDateCells = new Map(dateCells)
-              Object.entries(loadedData.dateCells).forEach(([dateKey, cellData]) => {
-                const existing = newDateCells.get(dateKey) || {}
-                newDateCells.set(dateKey, {
-                  ...existing,
-                  ...(cellData as any),
-                })
-              })
-              return Object.fromEntries(newDateCells)
-            })()
-          : Object.fromEntries(dateCells)
-
-        const dataToSave = {
-          selectedYear: loadedData.selectedYear || selectedYear,
-          dateCells: mergedDateCells,
-          selectedColorTexture: loadedData.selectedColorTexture || selectedColorTexture,
-          selectedView: loadedData.selectedView || selectedView,
-        }
-        localStorage.setItem("calendar_data", JSON.stringify(dataToSave))
+        const dataToSave = buildImportedStoredData(loadedRecord, {
+          selectedYear,
+          dateCells,
+          selectedColorTexture,
+          selectedView,
+        })
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave))
       } catch (error) {
         alert("Error loading data: Invalid JSON format")
         console.error("Error parsing loaded data:", error)
@@ -120,7 +105,7 @@ const SaveLoadData: React.FC = () => {
       setSelectedColorTexture("red")
       setSelectedView("Linear")
 
-      localStorage.removeItem("calendar_data")
+      localStorage.removeItem(STORAGE_KEY)
     }
   }
 
