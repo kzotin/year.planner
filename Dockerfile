@@ -1,18 +1,18 @@
 # Build stage
-FROM node:24-alpine AS builder
+FROM oven/bun:1.3.9-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files and install deps
-COPY package.json package-lock.json* ./
-RUN npm install
+COPY package.json bun.lock* ./
+RUN bun install --frozen-lockfile
 
 # Copy the rest of the app
 COPY . .
 
 # Build the application
-RUN npm run build
+RUN bun run build
 
 # Production stage
 FROM nginx:alpine

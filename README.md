@@ -21,13 +21,13 @@ Ideas, bugfixes and PRs are welcome. Open [issues](https://github.com/vas3k/year
 ## Run it yourself
 
 ```bash
-npm i
-npm run dev
+bun install
+bun run dev
 ```
 
 Then open <http://localhost:3000/>. Voilá!
 
-For production deployments use `npm run build`
+For production deployments use `bun run build`
 
 ## Run in docker-compose
 
@@ -43,4 +43,3 @@ services:
     ports:
       - "3000:80"
 ```
-
